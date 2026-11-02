@@ -5,13 +5,13 @@
 ## 1. 目前狀態
 - **第一版可以用了**（2026-11-02），暫名「電路實驗室」：電路圖與麵包板編輯、類比＋數位模擬、示波器、三用電錶、21 個範例、9 個引導實驗、存檔與分享連結。
 - 介面已改成接近商業軟體的外觀（2026-11-02）：功能表、工具列、分頁、狀態列、可拖曳的面板、線條圖示、深色與淺色主題；麵包板與實體元件重畫。
+- 網頁版已上線：https://chihfuhsiao.github.io/circuit-lab/ （2026-11-02）。
 - 交付檔案：`npm run build` 產生 `dist/index.html`（單一檔案 210 KB，沒有外部連結）。
 - 自動測試 149 項全過；主要流程已在瀏覽器用真實滑鼠操作驗證，範圍見 `docs/ACCEPTANCE.md`。
 - 版本控管：git，遠端是 GitHub 公開 repo `chihfuhsiao/circuit-lab`，保留所有權利；由使用者在 GitHub Desktop 推送（見 `docs/ARCHITECTURE.md`）。
 
 ## 2. 進行中
 - [ ] 使用者試用第一版，回饋介面手感與教學內容（`docs/ACCEPTANCE.md`「只有你能判斷」）
-- [ ] 使用者要在 repo 的 Settings → Pages 把 Source 設成 GitHub Actions 並推送；完成後確認 https://chihfuhsiao.github.io/circuit-lab/ 打得開
 
 ## 3. 下一步（下次對話從這裡開始）
 > **下次對話一開始先提醒使用者：請照 `docs/ACCEPTANCE.md` 的「只有你能判斷」實際操作**，並決定「待你決定」的項目。
