@@ -14,8 +14,8 @@
 - Node.js 裝在 `C:\Program Files\nodejs`。安裝前就開著的終端機可能找不到 `node`，重開終端機即可；Claude Code 的 PowerShell 要先重新載入 PATH：
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`
 - 專案放在 SynologyDrive，`node_modules/` 約 1,200 個檔案、71 MB。如果同步變慢，可以到 Synology Drive Client 的同步設定排除；排除後換電腦要重跑 `npm install`。
-- 版本控管：git，分支 `main`，只在本機。`git` 不在 PATH，用 GitHub Desktop 內附的 `%LOCALAPPDATA%\GitHubDesktop\app-3.6.7\resources\app\git\cmd\git.exe`（版本號會隨 GitHub Desktop 更新而變）；也可用 GitHub Desktop 開啟這個資料夾看歷史。GitHub Desktop 的 git 預設 `core.autocrlf=true`，這個 repo 設成 `false`，檔案一律維持 LF。
-- Synology Drive 的同步設定排除了 `.` 開頭的檔案（`blacklist.filter` 的 `black_prefix = "."`），所以 `.git/`、`.gitignore`、`.claude/` **不會同步，也不會備份到 NAS**，只在電腦 PC-D018 上。好處是多台電腦不會同時改到 `.git` 造成損毀；壞處是這台電腦壞掉時歷史就沒了（原始碼還在 NAS）。換到另一台電腦時原始碼會同步過去，但沒有 `.git/`、`.gitignore` 和開發伺服器設定 `.claude/launch.json`。
+- 版本控管：git，分支 `main`，遠端 `https://github.com/chihfuhsiao/circuit-lab`（私有）。推送由使用者在 GitHub Desktop 按 `Push origin`；這個 git 沒有 GitHub 登入資訊，不要從命令列 `git push`。`git` 不在 PATH，用 GitHub Desktop 內附的 `%LOCALAPPDATA%\GitHubDesktop\app-3.6.7\resources\app\git\cmd\git.exe`（版本號會隨 GitHub Desktop 更新而變）；也可用 GitHub Desktop 開啟這個資料夾看歷史。GitHub Desktop 的 git 預設 `core.autocrlf=true`，這個 repo 設成 `false`，檔案一律維持 LF。
+- Synology Drive 的同步設定排除了 `.` 開頭的檔案（`blacklist.filter` 的 `black_prefix = "."`），所以 `.git/`、`.gitignore`、`.claude/` **不會同步，也不會備份到 NAS**，只在電腦 PC-D018 上。好處是多台電腦不會同時改到 `.git` 造成損毀；版本歷史的備份靠 GitHub，所以要記得推送。換到另一台電腦時，SynologyDrive 裡的原始碼沒有 `.git/`，不要在那裡開 repo：用 GitHub Desktop 的 `Clone repository` 放到 SynologyDrive 以外的資料夾，clone 後設定 `core.autocrlf=false` 並重跑 `npm install`。
 - 開發模式下瀏覽器主控台可用 `__app`、`__stage`、`__examples` 檢查狀態（正式版不含）。瀏覽器窗格隱藏時 `requestAnimationFrame` 不會跑，測試時用 `__app.tick(0.016)` 手動推進；截圖可能比實際狀態慢一拍，先等 1 秒再截。
 
 ## 資料流

@@ -7,11 +7,10 @@
 - 介面已改成接近商業軟體的外觀（2026-11-02）：功能表、工具列、分頁、狀態列、可拖曳的面板、線條圖示、深色與淺色主題；麵包板與實體元件重畫。
 - 交付檔案：`npm run build` 產生 `dist/index.html`（單一檔案 210 KB，沒有外部連結）。
 - 自動測試 149 項全過；主要流程已在瀏覽器用真實滑鼠操作驗證，範圍見 `docs/ACCEPTANCE.md`。
-- 版本控管：git，只在電腦 PC-D018 本機；歷史不會同步到 NAS（見 `docs/ARCHITECTURE.md`）。
+- 版本控管：git，遠端是 GitHub 私有 repo `chihfuhsiao/circuit-lab`；由使用者在 GitHub Desktop 推送（見 `docs/ARCHITECTURE.md`）。
 
 ## 2. 進行中
 - [ ] 使用者試用第一版，回饋介面手感與教學內容（`docs/ACCEPTANCE.md`「只有你能判斷」）
-- [ ] 使用者正在用 GitHub Desktop 把專案放上 GitHub。放好後確認 `git remote -v`，再把 `CLAUDE.md`、`docs/ARCHITECTURE.md`、`docs/DECISIONS.md`、`docs/ACCEPTANCE.md` 裡「只在本機、沒有遠端」改掉
 
 ## 3. 下一步（下次對話從這裡開始）
 > **下次對話一開始先提醒使用者：請照 `docs/ACCEPTANCE.md` 的「只有你能判斷」實際操作**，並決定「待你決定」的項目。
@@ -21,6 +20,7 @@
 3. 候選功能（未排序，等使用者決定）：複製貼上、導線線段拖曳、頻率響應圖（波德圖）、更多實驗（疊加定理、戴維寧、共射極放大、計數器）、實驗進度保留、自動排到麵包板。
 
 ## 4. 最近對話紀錄（只保留最近 5 筆，舊的刪除；重要內容應已在 docs/ 各檔）
+- 2026-11-02：使用者用 GitHub Desktop 把專案放上 GitHub 私有 repo，文件改成有遠端的版本。
 - 2026-11-02：使用者覺得介面太陽春，重做視窗外框與麵包板外觀，加上深色與淺色主題；新增 `README.md`，準備放上 GitHub。
 - 2026-11-02：使用者決定用 git，建立本機 repo 並做第一次 commit，取消手動備份規則；發現 Synology Drive 不同步 `.` 開頭的檔案。
 - 2026-11-02：討論考量事項並決定範圍：類比＋數位、電路圖＋麵包板、沙盒＋範例＋引導實驗、網頁＋TypeScript；安裝 Node.js 26.13.0；參考 Proto Planner 建立交接架構；完成第一版並驗證。
