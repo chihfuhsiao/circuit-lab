@@ -10,6 +10,9 @@
 | `npm run typecheck` | TypeScript 型別檢查 |
 | `npm run build` | 型別檢查後打包成單一檔案 `dist/index.html` |
 
+## 網頁版
+網址 https://chihfuhsiao.github.io/circuit-lab/ （GitHub Pages，Source 設成 GitHub Actions）。推送到 `main` 會執行 `.github/workflows/deploy.yml`：`npm ci` → `npm test` → `npm run build` → 發佈 `dist/`；測試沒過就不更新。結果看 repo 的 Actions 分頁。
+
 ## 環境注意事項
 - Node.js 裝在 `C:\Program Files\nodejs`。安裝前就開著的終端機可能找不到 `node`，重開終端機即可；Claude Code 的 PowerShell 要先重新載入 PATH：
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`

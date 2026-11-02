@@ -11,6 +11,7 @@
 
 ## 2. 進行中
 - [ ] 使用者試用第一版，回饋介面手感與教學內容（`docs/ACCEPTANCE.md`「只有你能判斷」）
+- [ ] 使用者要在 repo 的 Settings → Pages 把 Source 設成 GitHub Actions 並推送；完成後確認 https://chihfuhsiao.github.io/circuit-lab/ 打得開
 
 ## 3. 下一步（下次對話從這裡開始）
 > **下次對話一開始先提醒使用者：請照 `docs/ACCEPTANCE.md` 的「只有你能判斷」實際操作**，並決定「待你決定」的項目。
@@ -20,6 +21,7 @@
 3. 候選功能（未排序，等使用者決定）：複製貼上、導線線段拖曳、頻率響應圖（波德圖）、更多實驗（疊加定理、戴維寧、共射極放大、計數器）、實驗進度保留、自動排到麵包板。
 
 ## 4. 最近對話紀錄（只保留最近 5 筆，舊的刪除；重要內容應已在 docs/ 各檔）
+- 2026-11-02：使用者要開網頁就能用，比照土管查詢用 GitHub Pages；這個專案要打包，所以用 GitHub Actions 自動發佈（`.github/workflows/deploy.yml`）。
 - 2026-11-02：使用者用 GitHub Desktop 把專案放上 GitHub，之後決定公開、保留所有權利；commit 歷史的信箱改成 GitHub 隱藏信箱。
 - 2026-11-02：使用者覺得介面太陽春，重做視窗外框與麵包板外觀，加上深色與淺色主題；新增 `README.md`，準備放上 GitHub。
 - 2026-11-02：使用者決定用 git，建立本機 repo 並做第一次 commit，取消手動備份規則；發現 Synology Drive 不同步 `.` 開頭的檔案。

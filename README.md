@@ -10,6 +10,10 @@
 
 ## 使用
 
+打開網頁就能用：https://chihfuhsiao.github.io/circuit-lab/
+
+也可以自己打包成單一檔案：
+
 ```bash
 npm install
 npm run build

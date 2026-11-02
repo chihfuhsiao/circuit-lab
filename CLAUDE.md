@@ -3,7 +3,7 @@
 給高中資訊科、電子科學生使用的電路模擬軟體：在電路圖或麵包板上接線，即時模擬類比與數位電路，並有內建範例和引導實驗。回覆一律使用**繁體中文**。
 
 ## 版本狀態（避免認知錯誤）
-- **形式**：純前端網頁（TypeScript＋Vite），沒有後端、沒有帳號。`npm run build` 產生單一檔案 `dist/index.html`，雙擊就能開，可放 USB、校內共用資料夾或網站。
+- **形式**：純前端網頁（TypeScript＋Vite），沒有後端、沒有帳號。`npm run build` 產生單一檔案 `dist/index.html`，雙擊就能開，可放 USB、校內共用資料夾。網頁版 https://chihfuhsiao.github.io/circuit-lab/ ，推送到 `main` 後由 GitHub Actions 自動測試、打包、更新。
 - **開發環境**：Node.js 26.13.0＋npm 11.20.0（2026-11-02 用 winget 安裝）。指令與路徑見 `docs/ARCHITECTURE.md`。
 - **版本控管**：git（2026-11-02 建立於電腦 PC-D018），遠端是 GitHub **公開** repo `chihfuhsiao/circuit-lab`，分支 `main`，保留所有權利（不放授權條款）。`git` 不在 PATH，路徑與同步限制見 `docs/ARCHITECTURE.md`。
 - **自動測試**：`npm test`（Vitest）；型別檢查 `npm run typecheck`。驗收清單在 `docs/ACCEPTANCE.md`。
