@@ -18,3 +18,7 @@ npm run build
 產生的 `dist/index.html` 是單一檔案，雙擊就能開，也可以放到 USB 或校內共用資料夾。
 
 開發時用 `npm run dev`，測試用 `npm test`。
+
+## 著作權
+
+© 2026 chihfuhsiao，保留所有權利。程式碼公開供閱覽，未經同意不得重製、修改或散布。

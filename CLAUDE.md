@@ -5,7 +5,7 @@
 ## 版本狀態（避免認知錯誤）
 - **形式**：純前端網頁（TypeScript＋Vite），沒有後端、沒有帳號。`npm run build` 產生單一檔案 `dist/index.html`，雙擊就能開，可放 USB、校內共用資料夾或網站。
 - **開發環境**：Node.js 26.13.0＋npm 11.20.0（2026-11-02 用 winget 安裝）。指令與路徑見 `docs/ARCHITECTURE.md`。
-- **版本控管**：git（2026-11-02 建立於電腦 PC-D018），遠端是 GitHub 私有 repo `chihfuhsiao/circuit-lab`，分支 `main`。`git` 不在 PATH，路徑與同步限制見 `docs/ARCHITECTURE.md`。
+- **版本控管**：git（2026-11-02 建立於電腦 PC-D018），遠端是 GitHub **公開** repo `chihfuhsiao/circuit-lab`，分支 `main`，保留所有權利（不放授權條款）。`git` 不在 PATH，路徑與同步限制見 `docs/ARCHITECTURE.md`。
 - **自動測試**：`npm test`（Vitest）；型別檢查 `npm run typecheck`。驗收清單在 `docs/ACCEPTANCE.md`。
 
 ## 文件讀取原則（省 token：需要時才讀，不重複讀）
@@ -24,6 +24,7 @@
 - `docs/DECISIONS.md` 的設計決定**不要更動，除非使用者明確要求**；標〔待確認〕的項目不可自行判斷刪改。
 - 修改已完成的程式前先確認 `git status` 乾淨，改動前的版本都已 commit；不再手動備份。功能完成且測試通過就 commit。
 - Claude Code 的 git 沒有 GitHub 登入資訊，**不要自行 `git push`**（會跳出登入視窗）。commit 後提醒使用者在 GitHub Desktop 按 `Push origin`。
+- repo 是公開的：不可放個資、學生資料、密碼金鑰，也不可放課本的文字或圖片。commit 一律用 GitHub 隱藏信箱，不可用使用者的個人信箱。
 - Synology Drive 不同步 `.` 開頭的檔案，所以 `.git/` 只在建立它的電腦上。看不到 `.git/` 時**不要自行 `git init`**，先問使用者。
 - 介面文字、錯誤訊息、實驗內容一律繁體中文；電路符號與用語跟課本一致。
 - 介面顏色用 `src/style.css` 的變數，畫布用 `src/view/common.ts` 的主題常數，不要寫死；改畫面要深色、淺色主題都看過。麵包板與實體元件例外，顏色固定（`src/view/bbparts.ts`）。
