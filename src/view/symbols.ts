@@ -6,7 +6,7 @@ import { Device } from '../engine/sim';
 import { CompDef, getDef, LED_COLORS } from '../circuit/catalog';
 import { formatValue } from '../circuit/format';
 import { Comp } from '../circuit/types';
-import { FONT, G, INK } from './common';
+import { alpha, ERROR, FONT, G, INK, INK_SOFT, MONO, PAPER, PAPER_2, SELECT } from './common';
 
 export interface SymCtx {
   g: CanvasRenderingContext2D;
@@ -40,13 +40,13 @@ function lead(s: SymCtx, pin: number, x: number, y: number): void {
 }
 
 /** 不隨元件旋轉的文字。 */
-function text(s: SymCtx, str: string, x: number, y: number, size = 11, align: CanvasTextAlign = 'center', color = INK, weight = ''): void {
+function text(s: SymCtx, str: string, x: number, y: number, size = 11, align: CanvasTextAlign = 'center', color = INK, weight = '', font = FONT): void {
   const { g } = s;
   g.save();
   g.translate(x, y);
   g.rotate((-s.rot * Math.PI) / 2);
   g.fillStyle = color;
-  g.font = `${weight} ${size}px ${FONT}`;
+  g.font = `${weight} ${size}px ${font}`;
   g.textAlign = align;
   g.textBaseline = 'middle';
   g.fillText(str, 0, 0);
@@ -100,7 +100,7 @@ function waveGlyph(g: CanvasRenderingContext2D, wave: string, r: number): void {
 
 function box(s: SymCtx, hw: number, hh: number, title?: string): void {
   const { g } = s;
-  g.fillStyle = '#ffffff';
+  g.fillStyle = PAPER;
   g.beginPath();
   g.rect(-hw, -hh, hw * 2, hh * 2);
   g.fill();
@@ -121,7 +121,7 @@ type GateShape = 'and' | 'or' | 'not' | 'xor';
 
 function gateBody(s: SymCtx, shape: GateShape, invert: boolean): void {
   const { g } = s;
-  g.fillStyle = '#ffffff';
+  g.fillStyle = PAPER;
   const inputs = s.def.pins.length - 1;
   const outX = invert ? 30 : 34;
   // 輸入與輸出引線
@@ -167,7 +167,7 @@ function gateBody(s: SymCtx, shape: GateShape, invert: boolean): void {
     const bx = shape === 'not' ? 33 : 34 + 0;
     g.beginPath();
     g.arc(bx, 0, 5, 0, Math.PI * 2);
-    g.fillStyle = '#ffffff';
+    g.fillStyle = PAPER;
     g.fill();
     g.stroke();
   }
@@ -242,7 +242,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     const { g } = s;
     lead(s, 0, -20, 0);
     lead(s, 1, 20, 0);
-    g.fillStyle = '#fff';
+    g.fillStyle = PAPER;
     g.beginPath();
     g.arc(0, 0, 20, 0, Math.PI * 2);
     g.fill();
@@ -256,7 +256,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     const { g } = s;
     lead(s, 0, -20, 0);
     lead(s, 1, 20, 0);
-    g.fillStyle = '#fff';
+    g.fillStyle = PAPER;
     g.beginPath();
     g.arc(0, 0, 20, 0, Math.PI * 2);
     g.fill();
@@ -338,7 +338,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     if (b > 0.01) {
       const grad = g.createRadialGradient(0, 0, 3, 0, 0, 36);
       grad.addColorStop(0, color);
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      grad.addColorStop(1, alpha(color, 0));
       g.globalAlpha = Math.min(1, 0.25 + b);
       g.fillStyle = grad;
       g.beginPath();
@@ -349,13 +349,13 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     lead(s, 0, -10, 0);
     lead(s, 1, 10, 0);
     path(g, [[-10, -10], [10, 0], [-10, 10]], true);
-    g.fillStyle = b > 0.01 ? color : '#fff';
+    g.fillStyle = b > 0.01 ? color : PAPER;
     g.fill();
     g.stroke();
     path(g, [[10, -10], [10, 10]]);
     g.stroke();
     if (led?.burned) {
-      g.strokeStyle = '#c92a2a';
+      g.strokeStyle = ERROR;
       g.lineWidth = 3;
       path(g, [[-14, -14], [14, 14]]);
       g.stroke();
@@ -384,7 +384,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     lead(s, 3, 0, -19);
     lead(s, 4, 0, 19);
     path(g, [[-30, -36], [34, 0], [-30, 36]], true);
-    g.fillStyle = '#fff';
+    g.fillStyle = PAPER;
     g.fill();
     g.stroke();
     text(s, '−', -22, -20, 14, 'center', INK, '700');
@@ -395,7 +395,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     lead(s, 0, -18, 0);
     lead(s, 1, 18, 0);
     const closed = s.comp.params.closed === true;
-    g.fillStyle = '#fff';
+    g.fillStyle = PAPER;
     for (const x of [-16, 16]) {
       g.beginPath();
       g.arc(x, 0, 3.2, 0, Math.PI * 2);
@@ -411,7 +411,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     lead(s, 0, -18, 0);
     lead(s, 1, 18, 0);
     const closed = s.comp.params.closed === true;
-    g.fillStyle = '#fff';
+    g.fillStyle = PAPER;
     for (const x of [-16, 16]) {
       g.beginPath();
       g.arc(x, 0, 3.2, 0, Math.PI * 2);
@@ -430,7 +430,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     const { g } = s;
     lead(s, 0, -24, 0);
     lead(s, 1, 24, 0);
-    g.fillStyle = '#fff';
+    g.fillStyle = PAPER;
     g.beginPath();
     g.arc(0, 0, 24, 0, Math.PI * 2);
     g.fill();
@@ -441,9 +441,9 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     if (s.live && s.dev instanceof Meter) {
       const r = s.dev.reading;
       const str = r === Infinity ? 'OL' : formatValue(Math.abs(r) < 1e-6 ? 0 : r, '', 3);
-      text(s, str, 0, 10, 10, 'center', '#0b7285', '600');
+      text(s, str, 0, 10, 9.5, 'center', SELECT, '600', MONO);
     }
-    text(s, '+', -32, -10, 12, 'center', '#c92a2a', '700');
+    text(s, '+', -32, -10, 12, 'center', '#e5484d', '700');
   },
   and: (s) => gateBody(s, 'and', false),
   or: (s) => gateBody(s, 'or', false),
@@ -456,7 +456,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     const { g } = s;
     lead(s, 0, 22, 0);
     const high = s.comp.params.high === true;
-    g.fillStyle = high ? '#d94841' : '#e6e6df';
+    g.fillStyle = high ? '#d94841' : PAPER_2;
     g.beginPath();
     g.roundRect(-30, -15, 52, 30, 6);
     g.fill();
@@ -467,7 +467,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
     const { g } = s;
     lead(s, 0, -18, 0);
     const high = s.live && s.volt(0) > 1.5;
-    g.fillStyle = high ? '#d94841' : '#e6e6df';
+    g.fillStyle = high ? '#d94841' : PAPER_2;
     g.beginPath();
     g.arc(2, 0, 20, 0, Math.PI * 2);
     g.fill();
@@ -477,7 +477,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
   clock(s) {
     const { g } = s;
     lead(s, 0, 22, 0);
-    g.fillStyle = '#fff';
+    g.fillStyle = PAPER;
     g.beginPath();
     g.roundRect(-30, -15, 52, 30, 6);
     g.fill();
@@ -517,7 +517,7 @@ const SYMBOLS: Record<string, (s: SymCtx) => void> = {
 
 function bjt(s: SymCtx, isNpn: boolean): void {
   const { g } = s;
-  g.fillStyle = '#fff';
+  g.fillStyle = PAPER;
   g.beginPath();
   g.arc(4, 0, 27, 0, Math.PI * 2);
   g.fill();
@@ -547,7 +547,7 @@ function bjt(s: SymCtx, isNpn: boolean): void {
     ['C', 29, -30],
     ['E', 29, 30],
   ];
-  for (const [t, x, y] of pins) text(s, t, x, y, 10, 'center', '#5b6672');
+  for (const [t, x, y] of pins) text(s, t, x, y, 10, 'center', INK_SOFT);
 }
 
 function mos(s: SymCtx, isN: boolean): void {
@@ -587,7 +587,7 @@ function mos(s: SymCtx, isN: boolean): void {
     ['D', 29, -30],
     ['S', 29, 30],
   ];
-  for (const [t, x, y] of pins) text(s, t, x, y, 10, 'center', '#5b6672');
+  for (const [t, x, y] of pins) text(s, t, x, y, 10, 'center', INK_SOFT);
 }
 
 const HEX_SEGS = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f, 0x77, 0x7c, 0x39, 0x5e, 0x79, 0x71];
@@ -625,7 +625,7 @@ function dipSymbol(s: SymCtx): void {
   const hw = 4 * G;
   const half = s.def.pins[0].dip !== undefined ? s.def.sch!.hh * G : s.def.sch!.hh * G;
   const { g } = s;
-  g.fillStyle = '#fff';
+  g.fillStyle = PAPER;
   g.beginPath();
   g.rect(-hw, -half, hw * 2, half * 2);
   g.fill();
@@ -637,7 +637,7 @@ function dipSymbol(s: SymCtx): void {
     const [x, y] = pinXY(s, i);
     lead(s, i, x > 0 ? hw : -hw, y);
     if (pin.dip !== undefined) {
-      text(s, String(pin.dip), x > 0 ? hw + 10 : -hw - 10, y - 7, 9, 'center', '#5b6672');
+      text(s, String(pin.dip), x > 0 ? hw + 10 : -hw - 10, y - 7, 9, 'center', INK_SOFT);
     }
     text(s, pin.name, x > 0 ? hw - 5 : -hw + 5, y, 10, x > 0 ? 'right' : 'left');
   });

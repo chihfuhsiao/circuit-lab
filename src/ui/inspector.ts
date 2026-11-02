@@ -6,6 +6,7 @@ import { getDef, ParamDef } from '../circuit/catalog';
 import { formatInput, formatValue, parseValue, resistorBands } from '../circuit/format';
 import { Comp } from '../circuit/types';
 import { measureLines } from '../view/schematic';
+import { drawIcon } from '../view/symbols';
 import { clear, h } from './dom';
 
 export function buildInspector(app: App): HTMLElement {
@@ -23,7 +24,13 @@ export function buildInspector(app: App): HTMLElement {
       return;
     }
     const def = getDef(comp.type);
-    el.append(h('h2', {}, `${comp.ref}　${def.name}`), h('div', { class: 'muted' }, def.desc));
+    const tile = h('canvas', { class: 'insp-icon', 'aria-hidden': 'true' });
+    el.append(
+      h('div', { class: 'insp-head' }, h('span', { class: 'pal-tile insp-tile' }, tile), h('div', {}, h('h2', {}, comp.ref || def.name), h('div', { class: 'muted' }, def.name))),
+      h('p', { class: 'muted insp-desc' }, def.desc),
+    );
+    if (def.sch) requestAnimationFrame(() => tile.isConnected && drawIcon(tile, comp));
+    el.append(h('h3', {}, '屬性'));
     if (comp.type !== 'gnd') {
       el.append(
         h(
@@ -75,7 +82,7 @@ export function buildInspector(app: App): HTMLElement {
     }
     const placed = app.compiled.topo.comps.some((c) => c.id === comp.id);
     const empty = placed ? '0V 參考點，沒有其他量測值' : '這個畫面還沒有放這個元件';
-    readout.replaceChildren(...(lines.length ? lines.map((l) => h('div', {}, l)) : [h('div', { class: 'muted' }, empty)]));
+    readout.replaceChildren(...(lines.length ? lines.map(kvRow) : [h('div', { class: 'muted' }, empty)]));
   };
 
   app.on((e) => {
@@ -96,6 +103,14 @@ export function buildInspector(app: App): HTMLElement {
 
   render();
   return el;
+}
+
+/** 「電壓 5 V」「A：3.2 V」拆成名稱與數值兩欄。 */
+function kvRow(line: string): HTMLElement {
+  const at = line.lastIndexOf('：');
+  const cut = at >= 0 ? at : line.indexOf(' ');
+  if (cut < 0) return h('div', { class: 'kv' }, h('span', {}, line));
+  return h('div', { class: 'kv' }, h('span', {}, line.slice(0, cut)), h('b', {}, line.slice(cut + 1).trim()));
 }
 
 function emptyState(app: App): HTMLElement {
@@ -169,7 +184,7 @@ function paramField(app: App, comp: Comp, p: ParamDef, rerender: () => void): HT
         app.commit(key);
       },
     });
-    return h('div', { class: 'field' }, h('label', {}, p.label, '：', value), range);
+    return h('div', { class: 'field' }, h('label', {}, p.label), h('div', { class: 'range-row' }, range, value));
   }
 
   // 數值：可輸入 4.7k 這種寫法，有範圍的另外附拉桿（對數刻度）。
@@ -192,7 +207,7 @@ function paramField(app: App, comp: Comp, p: ParamDef, rerender: () => void): HT
       rerender();
     },
   });
-  const nodes: (HTMLElement | string)[] = [h('label', {}, p.label, p.unit ? `（${p.unit}）` : ''), input];
+  const nodes: (HTMLElement | string)[] = [h('label', {}, p.label), h('div', { class: 'input-unit' }, input, p.unit ? h('span', {}, p.unit) : '')];
   if (p.min !== undefined && p.max !== undefined && p.min > 0) {
     const lo = Math.log10(p.min);
     const hi = Math.log10(p.max);

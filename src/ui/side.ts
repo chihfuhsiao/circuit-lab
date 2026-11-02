@@ -5,6 +5,7 @@ import { CircuitDoc, ViewKind } from '../circuit/types';
 import { EXAMPLES, Example } from '../content/examples';
 import { Check, CircuitStep, Experiment, EXPERIMENTS, QuizStep, Step } from '../content/experiments';
 import { clear, h, modal } from './dom';
+import { icon, IconName } from './icons';
 import { buildInspector } from './inspector';
 
 type Tab = 'props' | 'examples' | 'experiments';
@@ -44,12 +45,12 @@ export function buildSide(app: App): HTMLElement {
     { class: 'tabs', role: 'tablist' },
     (
       [
-        ['props', '屬性'],
-        ['examples', '範例'],
-        ['experiments', '實驗'],
-      ] as [Tab, string][]
-    ).map(([k, label]) => {
-      const b = h('button', { role: 'tab', onclick: () => show(k) }, label);
+        ['props', '屬性', 'sliders'],
+        ['examples', '範例', 'book'],
+        ['experiments', '實驗', 'flask'],
+      ] as [Tab, string, IconName][]
+    ).map(([k, label, name]) => {
+      const b = h('button', { role: 'tab', onclick: () => show(k) }, icon(name), label);
       buttons.set(k, b);
       return b;
     }),
@@ -151,12 +152,20 @@ function buildExperiments(app: App): HTMLElement {
     clear(el);
     progressEl = null;
     const finished = s.index >= s.exp.steps.length;
+    const total = s.exp.steps.length;
+    const doneCount = Math.min(s.index, total);
     el.append(
-      h('button', { class: 'btn ghost', onclick: leave }, '← 實驗列表'),
+      h('button', { class: 'btn ghost back', onclick: leave }, icon('arrowLeft', 14), '實驗列表'),
       h('h2', { style: 'margin-top:6px' }, s.exp.title),
       h('p', { class: 'muted', style: 'margin:2px 0 8px' }, s.exp.goal),
+      h(
+        'div',
+        { class: 'exp-progress', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': String(doneCount) },
+        h('div', { class: 'exp-track' }, h('i', { style: `width:${(doneCount / total) * 100}%` })),
+        h('span', {}, `${doneCount} / ${total}`),
+      ),
     );
-    if (finished) el.append(h('div', { class: 'banner', role: 'status' }, '實驗完成！你可以繼續修改電路，試試別的數值。'));
+    if (finished) el.append(h('div', { class: 'banner', role: 'status' }, icon('check'), '實驗完成！你可以繼續修改電路，試試別的數值。'));
     s.exp.steps.forEach((step, i) => el.append(renderStep(step, i)));
     el.append(
       h(
@@ -182,51 +191,59 @@ function buildExperiments(app: App): HTMLElement {
 
   const renderStep = (step: Step, i: number): HTMLElement => {
     const s = state!;
-    if (i > s.index) return h('div', { class: 'step todo' }, h('span', { class: 'num' }, `${i + 1}.`), step.kind === 'quiz' ? '問答' : '接線');
+    if (i > s.index) return h('div', { class: 'step todo' }, h('span', { class: 'num' }, String(i + 1)), h('div', { class: 'step-body' }, step.kind === 'quiz' ? '問答' : '接線'));
     if (i < s.index) {
       return h(
         'div',
         { class: 'step done' },
-        h('span', { class: 'num' }, '✓'),
-        step.kind === 'quiz' ? (step as QuizStep).explain : step.text,
+        h('span', { class: 'num' }, icon('check', 12)),
+        h('div', { class: 'step-body' }, step.kind === 'quiz' ? (step as QuizStep).explain : step.text),
       );
     }
     if (step.kind === 'quiz') {
       return h(
         'div',
         { class: 'step now' },
-        h('span', { class: 'num' }, `${i + 1}.`),
-        step.text,
-        step.options.map((opt, k) =>
-          h(
-            'button',
-            {
-              class: `quiz-option${s.wrong === k ? ' wrong' : ''}`,
-              onclick: () => {
-                if (k === step.answer) {
-                  s.index++;
-                  s.wrong = null;
-                  renderRun();
-                } else {
-                  s.wrong = k;
-                  renderRun();
-                }
+        h('span', { class: 'num' }, String(i + 1)),
+        h(
+          'div',
+          { class: 'step-body' },
+          step.text,
+          step.options.map((opt, k) =>
+            h(
+              'button',
+              {
+                class: `quiz-option${s.wrong === k ? ' wrong' : ''}`,
+                onclick: () => {
+                  if (k === step.answer) {
+                    s.index++;
+                    s.wrong = null;
+                    renderRun();
+                  } else {
+                    s.wrong = k;
+                    renderRun();
+                  }
+                },
               },
-            },
-            opt,
+              opt,
+            ),
           ),
+          s.wrong !== null ? h('div', { class: 'quiz-note', role: 'status' }, '再想想看，可以先看看電路的數值。') : '',
         ),
-        s.wrong !== null ? h('div', { class: 'quiz-note', role: 'status' }, '再想想看，可以先看看電路的數值。') : '',
       );
     }
     progressEl = (step as CircuitStep).progress ? h('div', { class: 'progress' }) : null;
     return h(
       'div',
       { class: 'step now' },
-      h('span', { class: 'num' }, `${i + 1}.`),
-      step.text,
-      progressEl,
-      step.hint ? h('div', { class: 'hint' }, `提示：${step.hint}`) : '',
+      h('span', { class: 'num' }, String(i + 1)),
+      h(
+        'div',
+        { class: 'step-body' },
+        step.text,
+        progressEl,
+        step.hint ? h('div', { class: 'hint' }, `提示：${step.hint}`) : '',
+      ),
     );
   };
 

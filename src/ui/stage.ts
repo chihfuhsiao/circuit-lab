@@ -55,6 +55,16 @@ export class Stage {
     }
   }
 
+  get zoom(): number {
+    return this.view.cam.zoom;
+  }
+
+  /** 以畫面中心為基準縮放。 */
+  zoomBy(factor: number): void {
+    const r = this.canvas.getBoundingClientRect();
+    zoomAt(this.view.cam, r.width / 2, r.height / 2, factor);
+  }
+
   /** 放置元件。compId 表示放置已存在、但還沒放到這個畫面的元件。 */
   beginPlace(type: string, compId?: string): void {
     (this.view as SchematicView | BreadboardView).beginPlace(type, compId);

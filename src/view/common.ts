@@ -1,14 +1,92 @@
-// 畫面共用：格點大小、攝影機、電壓配色、電流動畫。
+// 畫面共用：格點大小、攝影機、配色主題、電流動畫。
 
 export const G = 20;
-export const FONT = '"Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif';
+export const FONT = '"Segoe UI", "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif';
+export const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 
-export const INK = '#20262e';
-export const INK_SOFT = '#5b6672';
-export const SELECT = '#0b7285';
-export const CANVAS_BG = '#fbfaf6';
-export const GRID_DOT = '#d9d6cc';
-export const ERROR = '#c92a2a';
+export type ThemeName = 'dark' | 'light';
+
+const PALETTES = {
+  dark: {
+    ink: '#dfe4ec',
+    inkSoft: '#98a2b1',
+    select: '#35c2e4',
+    canvas: '#13161b',
+    gridDot: '#2b313b',
+    gridMajor: '#414a58',
+    paper: '#1b1f27',
+    paper2: '#2c323d',
+    error: '#ff6b6b',
+    bench: '#0f1216',
+    benchDot: '#1b2027',
+    dot: '#ffc93c',
+    tipBg: 'rgba(9,11,14,0.97)',
+    tipLine: '#414a58',
+    tipInk: '#eef1f5',
+    pillBg: 'rgba(19,22,27,0.94)',
+    vBase: [150, 160, 174],
+    vHigh: [255, 92, 92],
+    vLow: [86, 156, 255],
+  },
+  light: {
+    ink: '#1f2733',
+    inkSoft: '#5b6672',
+    select: '#0b7d9e',
+    canvas: '#fcfcfd',
+    gridDot: '#d8dde5',
+    gridMajor: '#b4bcc9',
+    paper: '#ffffff',
+    paper2: '#e6e9ee',
+    error: '#c92a2a',
+    bench: '#dfe3e9',
+    benchDot: '#cdd2da',
+    dot: '#e8a400',
+    tipBg: 'rgba(28,34,43,0.97)',
+    tipLine: '#1c222b',
+    tipInk: '#f4f6f8',
+    pillBg: 'rgba(255,255,255,0.95)',
+    vBase: [92, 102, 114],
+    vHigh: [214, 40, 40],
+    vLow: [28, 100, 214],
+  },
+};
+
+// 用 export let：切換主題後，所有繪圖程式下一幀就會讀到新顏色。
+export let INK = PALETTES.dark.ink;
+export let INK_SOFT = PALETTES.dark.inkSoft;
+export let SELECT = PALETTES.dark.select;
+export let CANVAS_BG = PALETTES.dark.canvas;
+export let GRID_DOT = PALETTES.dark.gridDot;
+export let GRID_MAJOR = PALETTES.dark.gridMajor;
+export let PAPER = PALETTES.dark.paper;
+export let PAPER_2 = PALETTES.dark.paper2;
+export let ERROR = PALETTES.dark.error;
+export let BENCH = PALETTES.dark.bench;
+export let BENCH_DOT = PALETTES.dark.benchDot;
+export let DOT_COLOR = PALETTES.dark.dot;
+let palette = PALETTES.dark;
+
+export function setCanvasTheme(name: ThemeName): void {
+  palette = PALETTES[name];
+  INK = palette.ink;
+  INK_SOFT = palette.inkSoft;
+  SELECT = palette.select;
+  CANVAS_BG = palette.canvas;
+  GRID_DOT = palette.gridDot;
+  GRID_MAJOR = palette.gridMajor;
+  PAPER = palette.paper;
+  PAPER_2 = palette.paper2;
+  ERROR = palette.error;
+  BENCH = palette.bench;
+  BENCH_DOT = palette.benchDot;
+  DOT_COLOR = palette.dot;
+}
+
+/** #rrggbb 加上透明度。 */
+export function alpha(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
 
 export interface Camera {
   x: number;
@@ -45,8 +123,8 @@ export interface EditorView {
 export function voltColor(v: number, vmax: number): string {
   const t = Math.max(-1, Math.min(1, v / Math.max(vmax, 1e-6)));
   const a = Math.abs(t);
-  const base = [92, 102, 114];
-  const hi = t >= 0 ? [214, 40, 40] : [28, 100, 214];
+  const base = palette.vBase;
+  const hi = t >= 0 ? palette.vHigh : palette.vLow;
   const c = base.map((b, i) => Math.round(b + (hi[i] - b) * a));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
@@ -68,7 +146,7 @@ export function drawDotsOnLine(
   bx: number,
   by: number,
   phase: number,
-  color = '#e8a400',
+  color = DOT_COLOR,
 ): void {
   const len = Math.hypot(bx - ax, by - ay);
   if (len < 1) return;
@@ -99,36 +177,80 @@ export function zoomAt(cam: Camera, sx: number, sy: number, factor: number): voi
   cam.zoom = z;
 }
 
+/** 選取或出錯的元件：淡色底加四角括號。 */
+export function drawSelectBox(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string): void {
+  g.fillStyle = alpha(color, 0.1);
+  g.strokeStyle = alpha(color, 0.45);
+  g.lineWidth = 1;
+  g.beginPath();
+  g.roundRect(x, y, w, h, 3);
+  g.fill();
+  g.stroke();
+  const c = Math.min(8, w / 3, h / 3);
+  g.strokeStyle = color;
+  g.lineWidth = 2;
+  g.lineCap = 'square';
+  g.beginPath();
+  for (const [cx, cy, dx, dy] of [
+    [x, y, 1, 1],
+    [x + w, y, -1, 1],
+    [x, y + h, 1, -1],
+    [x + w, y + h, -1, -1],
+  ]) {
+    g.moveTo(cx + dx * c, cy);
+    g.lineTo(cx, cy);
+    g.lineTo(cx, cy + dy * c);
+  }
+  g.stroke();
+  g.lineCap = 'butt';
+}
+
 /** 螢幕座標的提示框。 */
 export function drawTooltip(g: CanvasRenderingContext2D, lines: string[], sx: number, sy: number, w: number, h: number): void {
   if (!lines.length) return;
-  g.font = `13px ${FONT}`;
-  const tw = Math.max(...lines.map((l) => g.measureText(l).width));
-  const bw = tw + 16;
-  const bh = lines.length * 18 + 10;
+  const heading = lines.length > 1;
+  const fontOf = (i: number) => (heading && i === 0 ? `600 12.5px ${FONT}` : `12.5px ${FONT}`);
+  let tw = 0;
+  lines.forEach((l, i) => {
+    g.font = fontOf(i);
+    tw = Math.max(tw, g.measureText(l).width);
+  });
+  const bw = tw + 20;
+  const bh = lines.length * 18 + 12;
   let x = sx + 14;
   let y = sy + 16;
   if (x + bw > w - 4) x = sx - bw - 10;
   if (y + bh > h - 4) y = sy - bh - 10;
-  g.fillStyle = 'rgba(32,38,46,0.94)';
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,0.35)';
+  g.shadowBlur = 12;
+  g.shadowOffsetY = 3;
+  g.fillStyle = palette.tipBg;
   g.beginPath();
-  g.roundRect(x, y, bw, bh, 5);
+  g.roundRect(x, y, bw, bh, 6);
   g.fill();
-  g.fillStyle = '#f4f4ef';
+  g.restore();
+  g.strokeStyle = palette.tipLine;
+  g.lineWidth = 1;
+  g.stroke();
+  g.fillStyle = palette.tipInk;
   g.textAlign = 'left';
   g.textBaseline = 'middle';
-  lines.forEach((l, i) => g.fillText(l, x + 8, y + 14 + i * 18));
+  lines.forEach((l, i) => {
+    g.font = fontOf(i);
+    g.fillText(l, x + 10, y + 15 + i * 18);
+  });
 }
 
 /** 小標籤（節點電壓）。 */
 export function drawPill(g: CanvasRenderingContext2D, text: string, x: number, y: number, color: string): void {
-  g.font = `600 10.5px ${FONT}`;
-  const w = g.measureText(text).width + 8;
-  g.fillStyle = 'rgba(255,255,255,0.92)';
+  g.font = `600 10.5px ${MONO}`;
+  const w = g.measureText(text).width + 9;
+  g.fillStyle = palette.pillBg;
   g.strokeStyle = color;
   g.lineWidth = 1;
   g.beginPath();
-  g.roundRect(x - w / 2, y - 7.5, w, 15, 4);
+  g.roundRect(x - w / 2, y - 7.5, w, 15, 3);
   g.fill();
   g.stroke();
   g.fillStyle = color;

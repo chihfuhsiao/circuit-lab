@@ -10,10 +10,10 @@ import { CircuitDoc, Comp, newDoc, pinKey, ViewKind } from './circuit/types';
 export const STEPS_PER_SEC = 1000;
 const FRAME_BUDGET_MS = 13;
 const AUTOSAVE_KEY = 'circuit-sim:autosave';
-export const SCOPE_COLORS = ['#e03131', '#1971c2', '#2b8a3e', '#e67700'];
+export const SCOPE_COLORS = ['#ff5c5c', '#4dabf7', '#51cf66', '#ffb02e'];
 export const MAX_PROBES = 4;
 
-export type AppEvent = 'doc' | 'selection' | 'view' | 'run' | 'slow' | 'tool' | 'loaded';
+export type AppEvent = 'doc' | 'selection' | 'view' | 'run' | 'slow' | 'tool' | 'loaded' | 'theme';
 export type Tool = 'select' | 'wire' | 'probe';
 
 const SCOPE_LEN = 1 << 15;

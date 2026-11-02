@@ -3,9 +3,17 @@
 import { App, MAX_PROBES, SCOPE_COLORS } from '../app';
 import { getDef } from '../circuit/catalog';
 import { formatValue } from '../circuit/format';
-import { FONT } from '../view/common';
+import { alpha, FONT, MONO } from '../view/common';
 import { clear, h } from './dom';
+import { icon } from './icons';
+import { Panels } from './split';
 import { Stage } from './stage';
+
+export interface ScopeApi {
+  el: HTMLElement;
+  toggle(): void;
+  isOpen(): boolean;
+}
 
 const TIME_OPTIONS: [string, number][] = [
   ['自動', 0],
@@ -46,7 +54,7 @@ function niceStep(v: number): number {
   return n * 10 ** exp;
 }
 
-export function buildScope(app: App, stage: Stage): HTMLElement {
+export function buildScope(app: App, stage: Stage, panels: Panels): ScopeApi {
   let timeDiv = 0;
   let voltDiv = 0;
   let autoVolt = 1;
@@ -55,38 +63,46 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
   const canvas = h('canvas', { 'aria-label': '示波器波形' });
   const g = canvas.getContext('2d')!;
   const stats = h('div', { class: 'scope-stats', 'aria-live': 'off' });
-  const chips = h('span', { style: 'display:inline-flex;gap:4px;flex-wrap:wrap' });
+  const chips = h('span', { class: 'chips' });
+  const addLabel = h('span', {}, '探棒');
   const addBtn = h('button', {
-    class: 'btn',
+    class: 'tb tb-label sm',
+    'data-tip': '點電路上的節點，加到示波器',
     onclick: () => app.setTool(app.tool === 'probe' ? 'select' : 'probe'),
-  }, '＋探棒');
+  }, icon('plus', 14), addLabel);
   const timeSel = h(
     'select',
-    { class: 'select', 'aria-label': '時間刻度', onchange: (e: Event) => (timeDiv = Number((e.target as HTMLSelectElement).value)) },
-    TIME_OPTIONS.map(([label, v]) => h('option', { value: v }, label)),
+    { class: 'select sm', 'aria-label': '時間刻度', 'data-tip': '時間刻度', onchange: (e: Event) => (timeDiv = Number((e.target as HTMLSelectElement).value)) },
+    TIME_OPTIONS.map(([label, v]) => h('option', { value: v }, `T  ${label}`)),
   );
   const voltSel = h(
     'select',
-    { class: 'select', 'aria-label': '電壓刻度', onchange: (e: Event) => (voltDiv = Number((e.target as HTMLSelectElement).value)) },
-    VOLT_OPTIONS.map(([label, v]) => h('option', { value: v }, label)),
+    { class: 'select sm', 'aria-label': '電壓刻度', 'data-tip': '電壓刻度', onchange: (e: Event) => (voltDiv = Number((e.target as HTMLSelectElement).value)) },
+    VOLT_OPTIONS.map(([label, v]) => h('option', { value: v }, `V  ${label}`)),
   );
   const body = h('div', { class: 'scope-body' }, h('div', { class: 'scope-canvas-wrap' }, canvas), stats);
-  const toggle = h('button', {
-    class: 'btn ghost',
-    'aria-expanded': 'true',
-    onclick: () => {
-      open = !open;
-      body.style.display = open ? '' : 'none';
-      toggle.textContent = open ? '收合' : '展開';
-      toggle.setAttribute('aria-expanded', String(open));
-    },
-  }, '收合');
+  const handle = panels.handle('scope', 'y', -1, 'split-scope');
+  const setOpen = (v: boolean) => {
+    open = v;
+    body.hidden = !open;
+    handle.hidden = !open;
+    toggleBtn.replaceChildren(icon(open ? 'chevDown' : 'chevUp'));
+    toggleBtn.setAttribute('aria-expanded', String(open));
+    toggleBtn.dataset.tip = open ? '收合示波器' : '展開示波器';
+  };
+  const toggleBtn = h('button', {
+    class: 'tb sm',
+    'aria-label': '收合或展開示波器',
+    onclick: () => setOpen(!open),
+  });
   const el = h(
     'section',
     { class: 'scope', 'aria-label': '示波器' },
-    h('div', { class: 'scope-head' }, h('h3', {}, '示波器'), chips, addBtn, h('span', { class: 'spacer' }), timeSel, voltSel, toggle),
+    handle,
+    h('div', { class: 'scope-head' }, icon('wave'), h('h3', {}, '示波器'), chips, addBtn, h('span', { class: 'spacer' }), timeSel, voltSel, toggleBtn),
     body,
   );
+  setOpen(true);
 
   const renderChips = () => {
     clear(chips);
@@ -103,11 +119,11 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
       );
     });
     addBtn.classList.toggle('active', app.tool === 'probe');
-    addBtn.disabled = false;
-    addBtn.textContent = app.tool === 'probe' ? '點電路上的節點…' : app.doc.probes.length >= MAX_PROBES ? '＋探棒（換掉最舊的）' : '＋探棒';
+    addLabel.textContent = app.tool === 'probe' ? '點電路上的節點…' : app.doc.probes.length >= MAX_PROBES ? '探棒（換掉最舊的）' : '探棒';
   };
   app.on((e) => {
     if (e === 'doc' || e === 'tool' || e === 'view') renderChips();
+    if (e === 'loaded' || e === 'view') updateStats();
   });
   renderChips();
 
@@ -167,12 +183,16 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = r.width;
     const hh = r.height;
-    g.fillStyle = '#0f1a1c';
+    const screen = g.createRadialGradient(w / 2, hh / 2, 0, w / 2, hh / 2, Math.max(w, hh) * 0.65);
+    screen.addColorStop(0, '#0f1a1d');
+    screen.addColorStop(1, '#080d0f');
+    g.fillStyle = screen;
     g.fillRect(0, 0, w, hh);
 
-    // 格線
-    g.strokeStyle = 'rgba(160,190,190,0.18)';
+    // 格線：虛線的分格，中央十字加上刻度，和實體示波器一樣
+    g.strokeStyle = 'rgba(150,190,190,0.2)';
     g.lineWidth = 1;
+    g.setLineDash([1, 3]);
     g.beginPath();
     for (let i = 1; i < DIV_X; i++) {
       const x = Math.round((i / DIV_X) * w) + 0.5;
@@ -185,17 +205,32 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
       g.lineTo(w, y);
     }
     g.stroke();
-    g.strokeStyle = 'rgba(160,190,190,0.4)';
+    g.setLineDash([]);
+    const cx = Math.round(w / 2) + 0.5;
+    const cy = Math.round(hh / 2) + 0.5;
+    g.strokeStyle = 'rgba(150,190,190,0.42)';
     g.beginPath();
-    g.moveTo(0, hh / 2 + 0.5);
-    g.lineTo(w, hh / 2 + 0.5);
+    g.moveTo(0, cy);
+    g.lineTo(w, cy);
+    g.moveTo(cx, 0);
+    g.lineTo(cx, hh);
+    for (let i = 1; i < DIV_X * 5; i++) {
+      const x = Math.round((i / (DIV_X * 5)) * w) + 0.5;
+      g.moveTo(x, cy - 2);
+      g.lineTo(x, cy + 3);
+    }
+    for (let i = 1; i < DIV_Y * 5; i++) {
+      const y = Math.round((i / (DIV_Y * 5)) * hh) + 0.5;
+      g.moveTo(cx - 2, y);
+      g.lineTo(cx + 3, y);
+    }
     g.stroke();
 
     const s = app.scope;
     const range = windowRange();
     const probes = app.doc.probes;
     if (!probes.length) {
-      label('按「＋探棒」，再點電路上的節點，就能看到波形', w / 2, hh / 2, 'center', '#9fb5b5', 13);
+      label('按「探棒」，再點電路上的節點，就能看到波形', w / 2, hh / 2 - 12, 'center', '#9fb5b5', 13, FONT);
       return;
     }
     if (!range) return;
@@ -219,9 +254,7 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
 
     for (let k = 0; k < probes.length; k++) {
       const ch = s.channels[k];
-      g.strokeStyle = SCOPE_COLORS[k];
-      g.lineWidth = 1.6;
-      g.beginPath();
+      const trace = new Path2D();
       let first = true;
       for (let i = 0; i < s.count; i++) {
         const idx = s.index(i);
@@ -232,17 +265,24 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
         if (!Number.isFinite(v)) continue;
         const x = ((t - range.start) / range.span) * w;
         const y = yOf(v);
-        if (first) g.moveTo(x, y);
-        else g.lineTo(x, y);
+        if (first) trace.moveTo(x, y);
+        else trace.lineTo(x, y);
         first = false;
       }
-      g.stroke();
+      // 先畫一層較粗的淡線，看起來像螢光幕上的光暈
+      g.lineJoin = 'round';
+      g.strokeStyle = alpha(SCOPE_COLORS[k], 0.2);
+      g.lineWidth = 4;
+      g.stroke(trace);
+      g.strokeStyle = SCOPE_COLORS[k];
+      g.lineWidth = 1.4;
+      g.stroke(trace);
     }
-    label(`${formatValue(range.span / DIV_X, 's')}/格　${formatValue(vdiv, 'V')}/格`, 6, 11, 'left', '#9fb5b5', 11);
+    label(`${formatValue(range.span / DIV_X, 's')}/格   ${formatValue(vdiv, 'V')}/格`, 8, 12, 'left', '#9fb5b5', 11, MONO);
   }
 
-  function label(text: string, x: number, y: number, align: CanvasTextAlign, color: string, size: number): void {
-    g.font = `${size}px ${FONT}`;
+  function label(text: string, x: number, y: number, align: CanvasTextAlign, color: string, size: number, font: string): void {
+    g.font = `${size}px ${font}`;
     g.fillStyle = color;
     g.textAlign = align;
     g.textBaseline = 'middle';
@@ -295,7 +335,7 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
       return h(
         'div',
         { class: 'row' },
-        h('b', { style: `color:${SCOPE_COLORS[k]}` }, comp?.ref ?? '—'),
+        h('b', {}, h('i', { style: `background:${SCOPE_COLORS[k]}` }), comp?.ref ?? '—'),
         h('span', {}, '峰對峰'),
         h('span', {}, formatValue(max - min, 'V')),
         h('span', {}, '平均'),
@@ -309,5 +349,5 @@ export function buildScope(app: App, stage: Stage): HTMLElement {
     stats.replaceChildren(...rows.filter((x): x is HTMLDivElement => x !== null));
   }
 
-  return el;
+  return { el, toggle: () => setOpen(!open), isOpen: () => open };
 }

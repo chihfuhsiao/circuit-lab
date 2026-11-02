@@ -1,5 +1,7 @@
 // 小小的 DOM 工具，介面不需要框架。
 
+import { icon } from './icons';
+
 type Attrs = Record<string, unknown> & { class?: string; onclick?: (e: MouseEvent) => void };
 type Child = Node | string | null | undefined | false;
 
@@ -49,8 +51,8 @@ export function modal(title: string, body: (Node | string)[], actions: { label: 
     h(
       'div',
       { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
-      h('h2', {}, title),
-      ...body,
+      h('div', { class: 'modal-head' }, h('h2', {}, title), h('button', { class: 'tb', 'aria-label': '關閉', onclick: close }, icon('close'))),
+      h('div', { class: 'modal-body' }, ...body),
       h(
         'div',
         { class: 'modal-actions' },

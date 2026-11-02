@@ -16,7 +16,7 @@
 - 專案放在 SynologyDrive，`node_modules/` 約 1,200 個檔案、71 MB。如果同步變慢，可以到 Synology Drive Client 的同步設定排除；排除後換電腦要重跑 `npm install`。
 - 版本控管：git，分支 `main`，只在本機。`git` 不在 PATH，用 GitHub Desktop 內附的 `%LOCALAPPDATA%\GitHubDesktop\app-3.6.7\resources\app\git\cmd\git.exe`（版本號會隨 GitHub Desktop 更新而變）；也可用 GitHub Desktop 開啟這個資料夾看歷史。GitHub Desktop 的 git 預設 `core.autocrlf=true`，這個 repo 設成 `false`，檔案一律維持 LF。
 - Synology Drive 的同步設定排除了 `.` 開頭的檔案（`blacklist.filter` 的 `black_prefix = "."`），所以 `.git/`、`.gitignore`、`.claude/` **不會同步，也不會備份到 NAS**，只在電腦 PC-D018 上。好處是多台電腦不會同時改到 `.git` 造成損毀；壞處是這台電腦壞掉時歷史就沒了（原始碼還在 NAS）。換到另一台電腦時原始碼會同步過去，但沒有 `.git/`、`.gitignore` 和開發伺服器設定 `.claude/launch.json`。
-- 開發模式下瀏覽器主控台可用 `__app`、`__stage`、`__examples` 檢查狀態（正式版不含）。瀏覽器窗格隱藏時 `requestAnimationFrame` 不會跑，測試時用 `__app.tick(0.016)` 手動推進。
+- 開發模式下瀏覽器主控台可用 `__app`、`__stage`、`__examples` 檢查狀態（正式版不含）。瀏覽器窗格隱藏時 `requestAnimationFrame` 不會跑，測試時用 `__app.tick(0.016)` 手動推進；截圖可能比實際狀態慢一拍，先等 1 秒再截。
 
 ## 資料流
 使用者操作 → 修改 `CircuitDoc` → `App.commit()`（記入復原、自動存檔）→ `compile()` 產生新的 `Simulator`（保留電容電壓、正反器狀態）→ 每幀 `App.tick()` 步進 → 畫面讀取結果。
@@ -58,7 +58,26 @@
 | `breadboard.ts` | 麵包板編輯器 |
 
 ## 介面 `src/ui/`（不用框架）
-`dom.ts`（工具）、`stage.ts`（畫布與主迴圈）、`palette.ts`（元件庫）、`inspector.ts`（屬性）、`scope.ts`（示波器）、`side.ts`（分頁、範例、實驗面板）、`file.ts`（存檔、分享）。組裝在 `src/main.ts`，全域狀態在 `src/app.ts`。
+| 檔案 | 職責 |
+|---|---|
+| `chrome.ts` | 視窗外框：標題列與功能表內容、工具列、畫面分頁、提醒、狀態列 |
+| `menu.ts` | 功能表列的行為（點開、滑過切換、方向鍵、Esc） |
+| `icons.ts` | **新增圖示**：16×16 的內嵌線條圖 |
+| `theme.ts` | 深色／淺色主題，記在瀏覽器 |
+| `tip.ts` | 工具提示：元素加 `data-tip`、`data-key` 就有 |
+| `split.ts` | 可拖曳的面板分隔線，大小記在瀏覽器 |
+| `dialogs.ts` | 對照電路圖、使用說明、關於 |
+| `dom.ts` | DOM 工具、對話框、toast |
+| `stage.ts` | 畫布與主迴圈 |
+| `palette.ts` | 元件庫與搜尋 |
+| `inspector.ts` | 屬性 |
+| `scope.ts` | 示波器 |
+| `side.ts` | 右側分頁、範例、實驗面板 |
+| `file.ts` | 存檔、分享 |
+
+組裝在 `src/main.ts`，全域狀態在 `src/app.ts`。
+
+配色分兩處：介面用 `src/style.css` 開頭的 CSS 變數；畫布用 `src/view/common.ts` 的 `INK`、`PAPER`、`SELECT` 等（`export let`，切換主題後下一幀就讀到新值）。麵包板本身是白色的，上面的元件顏色固定，寫在 `src/view/bbparts.ts`。
 
 ## 教學內容 `src/content/`
 | 檔案 | 職責 |

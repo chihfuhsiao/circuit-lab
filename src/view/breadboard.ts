@@ -24,8 +24,8 @@ import { addBBWire, addComp, removeComp } from '../circuit/doc';
 import { formatValue } from '../circuit/format';
 import { bbPinTarget, bbTargetPos, bbVertex } from '../circuit/topology';
 import { BBPlace, BBWire, Comp, Point } from '../circuit/types';
-import { Camera, DOT_SPACING, dotSpeed, drawTooltip, EditorView, ERROR, fitCamera, FONT, G, INK, INK_SOFT, PointerInfo, SELECT, voltColor } from './common';
-import { drawPart, partBounds } from './bbparts';
+import { BENCH, BENCH_DOT, Camera, DOT_SPACING, dotSpeed, drawSelectBox, drawTooltip, EditorView, ERROR, fitCamera, FONT, G, PointerInfo, voltColor } from './common';
+import { BOARD_INK, BOARD_INK_SOFT, BOARD_SELECT, drawPart, partBounds } from './bbparts';
 import { measureLines } from './schematic';
 
 type Mode =
@@ -627,13 +627,27 @@ export class BreadboardView implements EditorView {
     const cam = this.cam;
     const c = app.compiled;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.fillStyle = '#e9e7df';
+    g.fillStyle = BENCH;
     g.fillRect(0, 0, w, h);
+    // 工作桌面：淡淡的點陣
+    const step = 28 * cam.zoom;
+    if (step > 8) {
+      const ox = ((cam.x % step) + step) % step;
+      const oy = ((cam.y % step) + step) % step;
+      g.fillStyle = BENCH_DOT;
+      for (let x = ox; x < w; x += step) for (let y = oy; y < h; y += step) g.fillRect(x - 0.75, y - 0.75, 1.5, 1.5);
+    }
     g.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom, dpr * cam.x, dpr * cam.y);
 
-    this.drawBoard(g);
+    this.drawBoard(g, dpr);
     this.drawStripTint(g);
-    g.fillStyle = '#3c4148';
+    // 孔：下緣一圈亮邊，看起來像凹進去
+    g.save();
+    g.translate(0, 0.7);
+    g.fillStyle = 'rgba(255,255,255,0.95)';
+    g.fill(getHolesPath());
+    g.restore();
+    g.fillStyle = '#2c3037';
     g.fill(getHolesPath());
     this.drawHoverStrip(g);
 
@@ -643,24 +657,30 @@ export class BreadboardView implements EditorView {
       const b = partBounds(comp);
       if (!b) continue;
       if (app.selection.has(comp.id) || errors.has(comp.id)) {
-        g.fillStyle = errors.has(comp.id) ? 'rgba(201,42,42,0.16)' : 'rgba(11,114,133,0.16)';
-        g.strokeStyle = errors.has(comp.id) ? ERROR : SELECT;
-        g.lineWidth = 1.5;
-        g.beginPath();
-        g.roundRect(b.x0 - 3, b.y0 - 3, b.x1 - b.x0 + 6, b.y1 - b.y0 + 6, 5);
-        g.fill();
-        g.stroke();
+        drawSelectBox(g, b.x0 - 4, b.y0 - 4, b.x1 - b.x0 + 8, b.y1 - b.y0 + 8, errors.has(comp.id) ? '#e03131' : BOARD_SELECT);
       }
       drawPart(g, comp, c.devices.get(comp.id), live);
       const kind = getDef(comp.type).bb?.kind;
       if (kind !== 'bench' && comp.ref) {
-        g.font = `600 10px ${FONT}`;
-        // IC 的本體是黑色，代號印在上面要用淺色。
-        g.fillStyle = kind === 'dip' ? '#c9c9c2' : INK;
+        const cx = (b.x0 + b.x1) / 2;
+        g.font = `600 9.5px ${FONT}`;
         g.textAlign = 'center';
         g.textBaseline = 'middle';
-        const lift = kind === 'dip' ? (b.y0 + b.y1) / 2 - 14 : b.y0 - 3;
-        g.fillText(comp.ref, (b.x0 + b.x1) / 2, lift);
+        if (kind === 'dip') {
+          // IC 的本體是黑色，代號印在上面要用淺色。
+          g.fillStyle = '#c9c9c2';
+          g.fillText(comp.ref, cx, (b.y0 + b.y1) / 2 - 12);
+        } else {
+          // 底下有孔，墊一塊底才讀得清楚。
+          const y = b.y0 - 4;
+          const tw = g.measureText(comp.ref).width + 6;
+          g.fillStyle = 'rgba(250,249,244,0.92)';
+          g.beginPath();
+          g.roundRect(cx - tw / 2, y - 6.5, tw, 13, 2.5);
+          g.fill();
+          g.fillStyle = BOARD_INK;
+          g.fillText(comp.ref, cx, y + 0.5);
+        }
       }
     }
 
@@ -672,34 +692,49 @@ export class BreadboardView implements EditorView {
     this.drawHover(g, w, h);
   }
 
-  private drawBoard(g: CanvasRenderingContext2D): void {
+  private drawBoard(g: CanvasRenderingContext2D, dpr: number): void {
     const x0 = 0.1 * G;
     const x1 = (BB_COLS + 0.9) * G;
     const y0 = -1 * G;
     const y1 = (BB_HEIGHT + 1) * G;
-    g.fillStyle = 'rgba(0,0,0,0.15)';
+    const body = g.createLinearGradient(0, y0, 0, y1);
+    body.addColorStop(0, '#fbfaf5');
+    body.addColorStop(1, '#f0ede3');
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.45)';
+    g.shadowBlur = 22 * dpr * this.cam.zoom;
+    g.shadowOffsetY = 7 * dpr * this.cam.zoom;
+    g.fillStyle = body;
     g.beginPath();
-    g.roundRect(x0 + 3, y0 + 4, x1 - x0, y1 - y0, 8);
+    g.roundRect(x0, y0, x1 - x0, y1 - y0, 7);
     g.fill();
-    g.fillStyle = '#f6f4ec';
-    g.strokeStyle = '#c9c5b6';
+    g.restore();
+    g.strokeStyle = '#c6c1b1';
     g.lineWidth = 1;
+    g.stroke();
+    // 上緣的亮邊
+    g.strokeStyle = 'rgba(255,255,255,0.9)';
     g.beginPath();
-    g.roundRect(x0, y0, x1 - x0, y1 - y0, 8);
-    g.fill();
+    g.roundRect(x0 + 1.5, y0 + 1.5, x1 - x0 - 3, y1 - y0 - 3, 6);
     g.stroke();
 
     // 中央溝槽
-    g.fillStyle = '#dcd8ca';
-    g.fillRect(x0, 8.1 * G, x1 - x0, 0.8 * G);
+    const gutterY = 8.1 * G;
+    const gutterH = 0.8 * G;
+    const gutter = g.createLinearGradient(0, gutterY, 0, gutterY + gutterH);
+    gutter.addColorStop(0, '#b9b4a4');
+    gutter.addColorStop(0.3, '#d6d2c4');
+    gutter.addColorStop(1, '#e5e2d7');
+    g.fillStyle = gutter;
+    g.fillRect(x0 + 1, gutterY, x1 - x0 - 2, gutterH);
 
     // 電源軌色線
     const railLine = (y: number, color: string) => {
       g.strokeStyle = color;
-      g.lineWidth = 2;
+      g.lineWidth = 2.2;
       g.beginPath();
-      g.moveTo(x0 + 8, y * G);
-      g.lineTo(x1 - 8, y * G);
+      g.moveTo(x0 + 10, y * G);
+      g.lineTo(x1 - 10, y * G);
       g.stroke();
     };
     railLine(rowY('T+') - 0.55, '#d3232a');
@@ -708,7 +743,7 @@ export class BreadboardView implements EditorView {
     railLine(rowY('B-') + 0.55, '#1f6fd6');
 
     // 列與欄的標記
-    g.fillStyle = INK_SOFT;
+    g.fillStyle = BOARD_INK_SOFT;
     g.font = `9px ${FONT}`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
@@ -764,7 +799,7 @@ export class BreadboardView implements EditorView {
     if (!hole) return;
     const strip = holeStrip(hole);
     if (!strip) return;
-    g.strokeStyle = SELECT;
+    g.strokeStyle = BOARD_SELECT;
     g.lineWidth = 1.4;
     for (const h of stripHoles(strip)) {
       const pos = holePos(h)!;
@@ -773,7 +808,7 @@ export class BreadboardView implements EditorView {
       g.stroke();
     }
     const pos = holePos(hole)!;
-    g.fillStyle = SELECT;
+    g.fillStyle = BOARD_SELECT;
     g.beginPath();
     g.arc(pos[0] * G, pos[1] * G, 4, 0, Math.PI * 2);
     g.fill();
@@ -794,10 +829,22 @@ export class BreadboardView implements EditorView {
     g.moveTo(a[0], a[1]);
     g.quadraticCurveTo(c[0], c[1], b[0], b[1]);
     g.stroke();
-    g.fillStyle = '#b4bbc4';
+    // 絕緣皮的反光
+    g.strokeStyle = 'rgba(255,255,255,0.28)';
+    g.lineWidth = width * 0.3;
+    g.beginPath();
+    g.moveTo(a[0], a[1] - width * 0.22);
+    g.quadraticCurveTo(c[0], c[1] - width * 0.22, b[0], b[1] - width * 0.22);
+    g.stroke();
+    // 插進孔裡的金屬端
     for (const q of [a, b]) {
+      g.fillStyle = '#8f98a3';
       g.beginPath();
-      g.arc(q[0], q[1], 2.6, 0, Math.PI * 2);
+      g.arc(q[0], q[1], 2.9, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#d7dce2';
+      g.beginPath();
+      g.arc(q[0] - 0.5, q[1] - 0.6, 1.3, 0, Math.PI * 2);
       g.fill();
     }
   }
@@ -815,7 +862,7 @@ export class BreadboardView implements EditorView {
       const selected = app.selection.has(w.id);
       if (selected) {
         const ctrl = jumperControl(a, b);
-        g.strokeStyle = SELECT;
+        g.strokeStyle = BOARD_SELECT;
         g.globalAlpha = 0.35;
         g.lineWidth = 8;
         g.lineCap = 'round';
@@ -828,7 +875,7 @@ export class BreadboardView implements EditorView {
       this.drawJumper(g, a, b, w.color);
       if (selected) {
         g.fillStyle = '#fff';
-        g.strokeStyle = SELECT;
+        g.strokeStyle = BOARD_SELECT;
         g.lineWidth = 2;
         for (const q of [a, b]) {
           g.beginPath();

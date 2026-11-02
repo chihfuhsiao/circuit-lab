@@ -8,12 +8,14 @@ import { formatValue } from '../circuit/format';
 import { normalizeWire, schPinPos } from '../circuit/topology';
 import { Comp, pinKey, Point, SchPlace, SchWire } from '../circuit/types';
 import {
+  alpha,
   Camera,
   CANVAS_BG,
   DOT_SPACING,
   dotSpeed,
   drawDotsOnLine,
   drawPill,
+  drawSelectBox,
   drawTooltip,
   EditorView,
   ERROR,
@@ -21,8 +23,10 @@ import {
   FONT,
   G,
   GRID_DOT,
+  GRID_MAJOR,
   INK,
   INK_SOFT,
+  PAPER,
   PointerInfo,
   SELECT,
   voltColor,
@@ -575,6 +579,27 @@ export class SchematicView implements EditorView {
       const r = Math.max(1, 1.2 * cam.zoom);
       for (let x = ox; x < w; x += step) for (let y = oy; y < h; y += step) g.fillRect(x - r / 2, y - r / 2, r, r);
     }
+    // 每 5 格一個十字，方便對齊
+    if (cam.zoom > 0.3) {
+      const step = G * 5 * cam.zoom;
+      const ox = ((cam.x % step) + step) % step;
+      const oy = ((cam.y % step) + step) % step;
+      const arm = 3;
+      g.strokeStyle = GRID_MAJOR;
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let x = ox; x < w; x += step) {
+        for (let y = oy; y < h; y += step) {
+          const px = Math.round(x) + 0.5;
+          const py = Math.round(y) + 0.5;
+          g.moveTo(px - arm, py);
+          g.lineTo(px + arm, py);
+          g.moveTo(px, py - arm);
+          g.lineTo(px, py + arm);
+        }
+      }
+      g.stroke();
+    }
 
     g.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom, dpr * cam.x, dpr * cam.y);
 
@@ -709,13 +734,7 @@ export class SchematicView implements EditorView {
     const hh = (vertical ? sch.hw : sch.hh) * G;
 
     if (app.selection.has(comp.id) || isError) {
-      g.fillStyle = isError ? 'rgba(201,42,42,0.12)' : 'rgba(11,114,133,0.12)';
-      g.strokeStyle = isError ? ERROR : SELECT;
-      g.lineWidth = 1.5;
-      g.beginPath();
-      g.roundRect(place.x * G - hw - 4, place.y * G - hh - 4, hw * 2 + 8, hh * 2 + 8, 6);
-      g.fill();
-      g.stroke();
+      drawSelectBox(g, place.x * G - hw - 5, place.y * G - hh - 5, hw * 2 + 10, hh * 2 + 10, isError ? ERROR : SELECT);
     }
 
     const live = c.sim.time > 0;
@@ -733,7 +752,7 @@ export class SchematicView implements EditorView {
       const hasEdge = c.topo.edges.some((e) => e.a === c.topo.pinVertex.get(pinKey(comp.id, i)) || e.b === c.topo.pinVertex.get(pinKey(comp.id, i)));
       if (hasEdge) return;
       const pos = schPinPos(comp, i);
-      g.fillStyle = '#fff';
+      g.fillStyle = PAPER;
       g.strokeStyle = pin.optional ? INK_SOFT : ERROR;
       g.lineWidth = 1.5;
       g.beginPath();
@@ -793,7 +812,9 @@ export class SchematicView implements EditorView {
       if (!cur || len > cur.len) best.set(net, { len, x: ((e.pa[0] + e.pb[0]) / 2) * G, y: ((e.pa[1] + e.pb[1]) / 2) * G });
     }
     for (const [net, b] of best) {
-      const v = c.sim.v(c.netNode[net]);
+      // 太小的值是數值雜訊，顯示 0 才不會讓學生困惑。
+      const raw = c.sim.v(c.netNode[net]);
+      const v = Math.abs(raw) < 1e-6 ? 0 : raw;
       drawPill(g, formatValue(v, 'V', 3), b.x, b.y - 11, voltColor(v, app.vmax));
     }
   }
@@ -828,7 +849,7 @@ export class SchematicView implements EditorView {
       g.fill();
     } else if (m.kind === 'box') {
       g.strokeStyle = SELECT;
-      g.fillStyle = 'rgba(11,114,133,0.08)';
+      g.fillStyle = alpha(SELECT, 0.1);
       g.lineWidth = 1;
       g.beginPath();
       g.rect(m.x0, m.y0, m.x1 - m.x0, m.y1 - m.y0);
