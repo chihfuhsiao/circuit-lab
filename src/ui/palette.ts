@@ -1,0 +1,71 @@
+// 左側元件庫。依目前畫面只列出放得上去的元件；麵包板畫面另外列出「待放置」。
+
+import { App } from '../app';
+import { CATALOG, CATEGORIES, CompDef, defaultParams, getDef } from '../circuit/catalog';
+import { Comp } from '../circuit/types';
+import { drawIcon } from '../view/symbols';
+import { clear, h } from './dom';
+import { Stage } from './stage';
+
+export function buildPalette(app: App, stage: Stage): HTMLElement {
+  const el = h('aside', { class: 'palette', 'aria-label': '元件庫' });
+  const open = new Set<string>(['電源', '被動元件', '半導體', '開關']);
+
+  const render = () => {
+    clear(el);
+    const view = app.view;
+    const tray = app.doc.comps.filter((c) => {
+      const def = getDef(c.type);
+      return view === 'bb' ? !c.bb && def.bb && c.sch : !c.sch && def.sch && c.bb;
+    });
+    if (tray.length) {
+      el.append(
+        h(
+          'div',
+          { class: 'tray' },
+          h('h4', {}, view === 'bb' ? '待放置（來自電路圖）' : '待放置（來自麵包板）'),
+          tray.map((c) => h('button', { class: 'btn', title: getDef(c.type).name, onclick: () => stage.beginPlace(c.type, c.id) }, c.ref)),
+        ),
+      );
+    }
+    for (const cat of CATEGORIES) {
+      const items = [...CATALOG.values()].filter((d) => d.category === cat && (view === 'sch' ? d.sch : d.bb));
+      if (!items.length) continue;
+      const details = h('details', { class: 'pal-group', open: open.has(cat) }, h('summary', {}, cat), items.map((d) => item(d, stage)));
+      details.addEventListener('toggle', () => {
+        if (details.open) open.add(cat);
+        else open.delete(cat);
+      });
+      el.append(details);
+    }
+    // canvas 要先進到畫面才有尺寸，圖示最後才畫。
+    requestAnimationFrame(() => {
+      el.querySelectorAll<HTMLCanvasElement>('canvas[data-type]').forEach((cv) => {
+        const type = cv.dataset.type!;
+        const comp: Comp = { id: '_', type, ref: '', params: defaultParams(type) };
+        drawIcon(cv, comp);
+      });
+    });
+  };
+
+  let lastKey = '';
+  app.on((e) => {
+    if (e !== 'view' && e !== 'doc') return;
+    const key = `${app.view}|${app.doc.comps.map((c) => `${c.id}:${c.sch ? 1 : 0}${c.bb ? 1 : 0}`).join(',')}`;
+    if (key !== lastKey) {
+      lastKey = key;
+      render();
+    }
+  });
+  render();
+  return el;
+}
+
+function item(d: CompDef, stage: Stage): HTMLElement {
+  return h(
+    'button',
+    { class: 'pal-item', title: d.desc, onclick: () => stage.beginPlace(d.type) },
+    h('canvas', { width: 44, height: 30, 'data-type': d.type, 'aria-hidden': 'true' }),
+    d.name,
+  );
+}
